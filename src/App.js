@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, onSnapshot } from "firebase/firestore";
 import { db } from "./firebase";
 
 const NUM_HOLES = 18;
@@ -106,6 +106,28 @@ export default function FantasyGolfDraft() {
         };
 
         loadData();
+    }, []);
+
+    useEffect(() => {
+        const docRef = doc(db, "fantasyGolf", DATA_DOC_ID);
+
+        const unsubscribe = onSnapshot(docRef, (docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                if (data.teams) {
+                    setTeams(data.teams);
+                    setLoading(false);
+                }
+            } else {
+                // Auto-create the document if it doesn't exist
+                setDoc(docRef, { teams: initialTeams }).then(() => {
+                    setTeams(initialTeams);
+                    setLoading(false);
+                });
+            }
+        });
+
+        return () => unsubscribe(); // Clean up on unmount
     }, []);
 
     // Save to Firestore when teams change
