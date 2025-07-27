@@ -144,7 +144,7 @@ export default function FantasyGolfDraft() {
         };
 
         saveData();
-    }, [teams]);
+    }, [teams, loading]);
 
     const updateScore = (teamIdx, holeIdx, value) => {
         const updatedTeams = [...teams];
