@@ -450,7 +450,7 @@ export default function FantasyGolfDraft() {
                         </p>
                     </div>
                     {team.transactions.length > 0 && (
-                        <div style={{ marginTop: "14px", fontSize: "14px", color: "#ccc" }}>
+                        <div style={{ marginTop: "14px", fontSize: "10px", color: "#ccc" }}>
                             <h4 style={{ marginBottom: "8px" }}>📜 Transactions:</h4>
                             <ul style={{ paddingLeft: "20px" }}>
                                 {team.transactions.map((tx, i) => (
