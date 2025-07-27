@@ -267,7 +267,7 @@ export default function FantasyGolfDraft() {
             </h1>
             <p
                 style={{
-                    fontSize: "20px",
+                    fontSize: "16px",
                     textAlign: "center",
                     marginBottom: "30px",
                     color: "#2ecc71",
