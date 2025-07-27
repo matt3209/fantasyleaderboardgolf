@@ -345,7 +345,7 @@ export default function FantasyGolfDraft() {
                         alignItems: "center",
                         gap: "8px",
                         cursor: "pointer",
-                        fontSize: "16px",
+                        fontSize: "12px",
                     }}
                 >
                     <input
