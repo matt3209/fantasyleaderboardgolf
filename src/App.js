@@ -1,4 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import { db } from "./firebase";
 
 const NUM_HOLES = 18;
 
@@ -14,14 +16,14 @@ const teamNames = [
     "Handful of TDs",
     "Cash Money $100 Bills",
     "Corndogs-$ of the Future",
-    "Nate and Jake 4ever"
+    "Nate and Jake 4ever",
 ];
 
 const initialTeams = teamNames.map((name) => ({
     name,
     strokes: Array(NUM_HOLES).fill("0"),
     adjustments: 0,
-    transactions: []
+    transactions: [],
 }));
 
 function NumericInput({ value, onChange }) {
@@ -40,7 +42,7 @@ function NumericInput({ value, onChange }) {
         if (e.key === "Enter") {
             if (isNumeric(inputValue)) {
                 onChange(Number(inputValue));
-                setInputValue(inputValue.replace(/^0+(?!$)/, "")); // remove leading zeros except single 0
+                setInputValue(inputValue.replace(/^0+(?!$)/, ""));
             } else {
                 onChange(0);
                 setInputValue("0");
@@ -75,7 +77,7 @@ function NumericInput({ value, onChange }) {
                 backgroundColor: "#2b2b2b",
                 color: "#f0f0f0",
                 textAlign: "center",
-                width: "40px"
+                width: "40px",
             }}
         />
     );
@@ -85,10 +87,42 @@ export default function FantasyGolfDraft() {
     const [teams, setTeams] = useState(initialTeams);
     const [fromTeamIdx, setFromTeamIdx] = useState(0);
     const [isConfirmed, setIsConfirmed] = useState(false);
+    const [loading, setLoading] = useState(true);
+
+    const DATA_DOC_ID = "leagueState";
+
+    // Load data from Firestore
+    useEffect(() => {
+        const loadData = async () => {
+            const docRef = doc(db, "fantasyGolf", DATA_DOC_ID);
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+                setTeams(docSnap.data().teams);
+            } else {
+                await setDoc(docRef, { teams: initialTeams });
+                setTeams(initialTeams);
+            }
+            setLoading(false);
+        };
+
+        loadData();
+    }, []);
+
+    // Save to Firestore when teams change
+    useEffect(() => {
+        if (loading) return;
+
+        const saveData = async () => {
+            const docRef = doc(db, "fantasyGolf", DATA_DOC_ID);
+            await updateDoc(docRef, { teams });
+        };
+
+        saveData();
+    }, [teams]);
 
     const updateScore = (teamIdx, holeIdx, value) => {
         const updatedTeams = [...teams];
-        updatedTeams[teamIdx].strokes[holeIdx] = value;
+        updatedTeams[teamIdx].strokes[holeIdx] = value.toString();
         setTeams(updatedTeams);
     };
 
@@ -120,11 +154,14 @@ export default function FantasyGolfDraft() {
         .map((team, i) => ({ ...team, index: i }))
         .sort((a, b) => getTotalScore(a) - getTotalScore(b));
 
-    // Reset confirmation if acting team changes
     const handleTeamChange = (e) => {
         setFromTeamIdx(Number(e.target.value));
         setIsConfirmed(false);
     };
+
+    if (loading) {
+        return <p style={{ color: "#fff", textAlign: "center" }}>Loading teams...</p>;
+    }
 
     return (
         <div
@@ -144,7 +181,7 @@ export default function FantasyGolfDraft() {
                     fontWeight: "bold",
                     marginBottom: "10px",
                     textAlign: "center",
-                    color: "#ff6f00", // sporty orange
+                    color: "#ff6f00",
                     fontFamily: "'Anton', sans-serif",
                     textTransform: "uppercase",
                     letterSpacing: "2px",
@@ -157,7 +194,7 @@ export default function FantasyGolfDraft() {
                     fontSize: "20px",
                     textAlign: "center",
                     marginBottom: "30px",
-                    color: "#00bcd4", // sporty cyan
+                    color: "#00bcd4",
                     fontWeight: "600",
                 }}
             >
@@ -218,7 +255,6 @@ export default function FantasyGolfDraft() {
                 </select>
             </div>
 
-            {/* Confirmation checkbox */}
             <div
                 style={{
                     textAlign: "center",
@@ -280,7 +316,11 @@ export default function FantasyGolfDraft() {
                                 key={holeIdx}
                                 value={stroke}
                                 onChange={(val) => updateScore(teamIdx, holeIdx, val)}
-                                style={{ flex: "1 0 12%", minWidth: "40px", maxWidth: "40px" }}
+                                style={{
+                                    flex: "1 0 12%",
+                                    minWidth: "40px",
+                                    maxWidth: "40px",
+                                }}
                             />
                         ))}
                     </div>
@@ -313,9 +353,7 @@ export default function FantasyGolfDraft() {
                             style={{
                                 padding: "8px 14px",
                                 backgroundColor:
-                                    fromTeamIdx !== teamIdx || !isConfirmed
-                                        ? "#555"
-                                        : "#e74c3c",
+                                    fromTeamIdx !== teamIdx || !isConfirmed ? "#555" : "#e74c3c",
                                 color: "white",
                                 border: "none",
                                 borderRadius: "6px",
