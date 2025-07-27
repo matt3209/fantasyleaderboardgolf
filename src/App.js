@@ -274,7 +274,7 @@ export default function FantasyGolfDraft() {
                     fontWeight: "600",
                 }}
             >
-                Total Added Money to Pot: <strong>${totalMoney}</strong>
+                Total Added Money to Pot: <strong>${totalMoney.toFixed(2)}</strong>
             </p>
 
             <div
