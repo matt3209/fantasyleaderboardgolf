@@ -388,16 +388,15 @@ export default function FantasyGolfDraft() {
                         }}
                     >
                         {team.strokes.map((stroke, holeIdx) => (
-                            <NumericInput
-                                key={holeIdx}
-                                value={stroke}
-                                onChange={(val) => updateScore(teamIdx, holeIdx, val)}
-                                style={{
-                                    flex: "1 0 12%",
-                                    minWidth: "40px",
-                                    maxWidth: "40px",
-                                }}
-                            />
+                            <div key={holeIdx} style={{ textAlign: "center" }}>
+                                <div style={{ fontSize: "10px", marginBottom: "4px", color: "#aaa" }}>
+                                    {holeIdx + 1}
+                                </div>
+                                <NumericInput
+                                    value={stroke}
+                                    onChange={(val) => updateScore(teamIdx, holeIdx, val)}
+                                />
+                            </div>
                         ))}
                     </div>
 
