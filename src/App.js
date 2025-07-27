@@ -301,7 +301,7 @@ export default function FantasyGolfDraft() {
                     {leaderboard.map((team) => (
                         <li
                             key={team.index}
-                            style={{ fontSize: "18px", marginBottom: "4px" }}
+                            style={{ fontSize: "14px", marginBottom: "4px" }}
                         >
                             <strong>{team.name}</strong> : {getTotalScore(team)}
                         </li>
