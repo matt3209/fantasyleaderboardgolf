@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { doc, getDoc, setDoc, updateDoc, onSnapshot } from "firebase/firestore";
 import { db } from "./firebase";
+import loogLogo from "./loog.png"; // adjust the path if it's in a subfolder like ./assets/loog.png
+
 
 const NUM_HOLES = 18;
 
@@ -25,6 +27,8 @@ const initialTeams = teamNames.map((name) => ({
     adjustments: 0,
     transactions: [],
 }));
+
+
 
 function NumericInput({ value, onChange }) {
     const [inputValue, setInputValue] = useState(value.toString());
@@ -151,16 +155,44 @@ export default function FantasyGolfDraft() {
     const adjustScore = (targetTeamIdx, amount, sourceTeamIdx) => {
         if (amount < 0 && targetTeamIdx !== sourceTeamIdx) return;
 
-        const updatedTeams = [...teams];
-        updatedTeams[targetTeamIdx].adjustments += amount;
-        updatedTeams[sourceTeamIdx].transactions.push({
+        // Deep copy teams
+        const updatedTeams = teams.map(team => ({
+            ...team,
+            strokes: [...team.strokes],
+            transactions: [...team.transactions],
+        }));
+
+
+        const actingTeam = updatedTeams[sourceTeamIdx];
+        const targetTeam = updatedTeams[targetTeamIdx];
+        let cost = 5;
+        // Push the new transaction first to get the correct count
+        actingTeam.transactions.push({
             type: amount > 0 ? "add" : "remove",
             amount: Math.abs(amount),
-            to: updatedTeams[targetTeamIdx].name,
-            cost: 5 * Math.abs(amount),
+            to: targetTeam.name,
+            cost: 0, // temporary 0, will update below
         });
+
+        // Now compute cost based on updated transactions count (including the new one)
+        if(targetTeamIdx === sourceTeamIdx) {
+            cost = getNextCostYou(targetTeamIdx, sourceTeamIdx, updatedTeams);
+        }
+        else {
+            cost = getNextCostOp(targetTeamIdx, sourceTeamIdx, updatedTeams);
+        }
+
+        // Update the cost on the last pushed transaction
+        actingTeam.transactions[actingTeam.transactions.length - 1].cost = cost;
+
+        // Apply adjustment after cost set
+        targetTeam.adjustments += amount;
+
         setTeams(updatedTeams);
     };
+
+
+
 
     const getTotalScore = (team) =>
         team.strokes.reduce((a, b) => a + Number(b), 0) + team.adjustments;
@@ -171,6 +203,18 @@ export default function FantasyGolfDraft() {
             t.transactions.reduce((sub, tx) => sub + (tx.cost || 0), 0),
         0
     );
+
+    const getNextCostYou = (teamIdx, fromTeamIdx, teamsState) => {
+        const txCount = teamsState[fromTeamIdx]?.transactions.length || 0;
+        const cost = 5 * Math.pow(1.5, txCount);
+        return Math.round(cost * 100) / 100; // rounds to 2 decimal places
+    };
+
+    const getNextCostOp = (teamIdx, fromTeamIdx, teamsState) => {
+        const txCount = teamsState[fromTeamIdx]?.transactions.length || 0;
+        const cost = 5 * Math.pow(1.25, txCount);
+        return Math.round(cost * 100) / 100; // rounds to 2 decimal places
+    };
 
     const leaderboard = [...teams]
         .map((team, i) => ({ ...team, index: i }))
@@ -203,24 +247,34 @@ export default function FantasyGolfDraft() {
                     fontWeight: "bold",
                     marginBottom: "10px",
                     textAlign: "center",
-                    color: "#ff6f00",
+                    color: "#fff",
                     fontFamily: "'Anton', sans-serif",
                     textTransform: "uppercase",
                     letterSpacing: "2px",
                 }}
             >
-                LEAGUE OF EXTRAORDINARY GENTLEMAN
+                <div style={{ textAlign: "center", marginBottom: "20px" }}>
+                    <img
+                        src={loogLogo}
+                        alt="LOOG Logo"
+                        style={{
+                            maxWidth: "100%",
+                            height: "auto",
+                            width: "200px", // or whatever fits your design
+                        }}
+                    />
+                </div>
             </h1>
             <p
                 style={{
                     fontSize: "20px",
                     textAlign: "center",
                     marginBottom: "30px",
-                    color: "#00bcd4",
+                    color: "#2ecc71",
                     fontWeight: "600",
                 }}
             >
-                Total Money in Pot: <strong>${totalMoney}</strong>
+                Total Added Money to Pot: <strong>${totalMoney}</strong>
             </p>
 
             <div
@@ -236,7 +290,7 @@ export default function FantasyGolfDraft() {
                     style={{
                         fontSize: "20px",
                         marginBottom: "15px",
-                        color: "#ff6f00",
+                        color: "#fff",
                         textAlign: "center",
                         fontFamily: "'Orbitron', sans-serif",
                     }}
@@ -318,7 +372,7 @@ export default function FantasyGolfDraft() {
                     <h2
                         style={{
                             fontSize: "22px",
-                            color: "#ff6f00",
+                            color: "#fff",
                             marginBottom: "12px",
                             fontFamily: "'Orbitron', sans-serif",
                         }}
@@ -367,7 +421,7 @@ export default function FantasyGolfDraft() {
                                 cursor: !isConfirmed ? "not-allowed" : "pointer",
                             }}
                         >
-                            +1 Stroke ($5)
+                            +1 Stroke (${getNextCostOp(teamIdx, fromTeamIdx, teams).toFixed(2)})
                         </button>
                         <button
                             onClick={() => adjustScore(teamIdx, -1, fromTeamIdx)}
@@ -385,7 +439,7 @@ export default function FantasyGolfDraft() {
                                         : "pointer",
                             }}
                         >
-                            -1 Stroke ($5)
+                            -1 Stroke (${getNextCostYou(teamIdx, fromTeamIdx, teams).toFixed(2)})
                         </button>
                         <p style={{ margin: 0 }}>
                             Adjustment: {team.adjustments > 0 ? "+" : ""}
