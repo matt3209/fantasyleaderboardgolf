@@ -39,6 +39,11 @@ const initialTeams = teamNames.map((name) => ({
 function NumericInput({ value, onChange }) {
     const [inputValue, setInputValue] = useState(value.toString());
 
+    // Update local state when value prop changes (from Firebase updates)
+    useEffect(() => {
+        setInputValue(value.toString());
+    }, [value]);
+
     const isNumeric = (str) => /^\d+$/.test(str);
 
     const handleChange = (e) => {
@@ -315,7 +320,7 @@ export default function FantasyGolfDraft() {
             >
                 <h2
                     style={{
-                        fontSize: "20px",
+                        fontSize: "17px",
                         marginBottom: "15px",
                         color: "#fff",
                         textAlign: "center",
@@ -336,7 +341,7 @@ export default function FantasyGolfDraft() {
                         return (
                             <li
                                 key={team.index}
-                                style={{ fontSize: "14px", marginBottom: "4px" }}
+                                style={{ fontSize: "10px", marginBottom: "4px" }}
                             >
                                 <strong>{team.name}</strong> : {getTotalScore(team)} stroke(s) ({relativeDisplay})
                             </li>
