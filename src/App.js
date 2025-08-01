@@ -6,6 +6,12 @@ import loogLogo from "./loog.png"; // adjust the path if it's in a subfolder lik
 
 const NUM_HOLES = 18;
 
+// Par values for each hole (1-18)
+const HOLE_PARS = [
+    4, 5, 4, 3, 4, 5, 4, 3, 4,  // Front nine (1-9)
+    4, 5, 3, 4, 4, 4, 5, 3, 4   // Back nine (10-18)
+];
+
 const teamNames = [
     "AirPumpBulges LLC",
     "Salt",
@@ -14,10 +20,10 @@ const teamNames = [
     "3 Holes of Contact",
     "Ya Love to see it",
     "Team DadStrength",
-    "John Buck > Joe Buck",
+    "Return of the Heir",
     "Handful of TDs",
     "Cash Money $100 Bills",
-    "Corndogs-$ of the Future",
+    "Corndogs",
     "Nate and Jake 4ever",
 ];
 
@@ -165,25 +171,23 @@ export default function FantasyGolfDraft() {
 
         const actingTeam = updatedTeams[sourceTeamIdx];
         const targetTeam = updatedTeams[targetTeamIdx];
-        let cost = 5;
-        // Push the new transaction first to get the correct count
-        actingTeam.transactions.push({
-            type: amount > 0 ? "add" : "remove",
-            amount: Math.abs(amount),
-            to: targetTeam.name,
-            cost: 0, // temporary 0, will update below
-        });
-
-        // Now compute cost based on updated transactions count (including the new one)
+        
+        // Calculate cost before adding the transaction
+        let cost;
         if(targetTeamIdx === sourceTeamIdx) {
             cost = getNextCostYou(targetTeamIdx, sourceTeamIdx, updatedTeams);
         }
         else {
             cost = getNextCostOp(targetTeamIdx, sourceTeamIdx, updatedTeams);
         }
-
-        // Update the cost on the last pushed transaction
-        actingTeam.transactions[actingTeam.transactions.length - 1].cost = cost;
+        
+        // Add the transaction with the correct cost
+        actingTeam.transactions.push({
+            type: amount > 0 ? "add" : "remove",
+            amount: Math.abs(amount),
+            to: targetTeam.name,
+            cost: cost,
+        });
 
         // Apply adjustment after cost set
         targetTeam.adjustments += amount;
@@ -196,6 +200,27 @@ export default function FantasyGolfDraft() {
 
     const getTotalScore = (team) =>
         team.strokes.reduce((a, b) => a + Number(b), 0) + team.adjustments;
+        
+    // Calculate score relative to par for completed holes
+    const getScoreRelativeToPar = (team) => {
+        let totalPar = 0;
+        let totalStrokes = 0;
+        
+        // Count only holes that have been played (non-zero scores)
+        for (let i = 0; i < NUM_HOLES; i++) {
+            const strokes = Number(team.strokes[i]);
+            if (strokes > 0) {
+                totalPar += HOLE_PARS[i];
+                totalStrokes += strokes;
+            }
+        }
+        
+        // Add adjustments to the total strokes
+        totalStrokes += team.adjustments;
+        
+        // Return the difference (positive is over par, negative is under par)
+        return totalStrokes - totalPar;
+    };
 
     const totalMoney = teams.reduce(
         (sum, t) =>
@@ -205,20 +230,22 @@ export default function FantasyGolfDraft() {
     );
 
     const getNextCostYou = (teamIdx, fromTeamIdx, teamsState) => {
+        // Count all transactions for the acting team, regardless of target
         const txCount = teamsState[fromTeamIdx]?.transactions.length || 0;
-        const cost = 5 * Math.pow(1.5, txCount);
+        const cost = 5 * Math.pow(1.75, txCount);
         return Math.round(cost * 100) / 100; // rounds to 2 decimal places
     };
 
     const getNextCostOp = (teamIdx, fromTeamIdx, teamsState) => {
+        // Count all transactions for the acting team, regardless of target
         const txCount = teamsState[fromTeamIdx]?.transactions.length || 0;
-        const cost = 5 * Math.pow(1.25, txCount);
+        const cost = 5 * Math.pow(1.75, txCount);
         return Math.round(cost * 100) / 100; // rounds to 2 decimal places
     };
 
     const leaderboard = [...teams]
         .map((team, i) => ({ ...team, index: i }))
-        .sort((a, b) => getTotalScore(a) - getTotalScore(b));
+        .sort((a, b) => getScoreRelativeToPar(a) - getScoreRelativeToPar(b));
 
     const handleTeamChange = (e) => {
         setFromTeamIdx(Number(e.target.value));
@@ -298,14 +325,23 @@ export default function FantasyGolfDraft() {
                     🏆 Leaderboard
                 </h2>
                 <ol style={{ paddingLeft: "20px", lineHeight: "1.8" }}>
-                    {leaderboard.map((team) => (
-                        <li
-                            key={team.index}
-                            style={{ fontSize: "14px", marginBottom: "4px" }}
-                        >
-                            <strong>{team.name}</strong> : {getTotalScore(team)}
-                        </li>
-                    ))}
+                    {leaderboard.map((team) => {
+                        const relativeToPar = getScoreRelativeToPar(team);
+                        const relativeDisplay = relativeToPar > 0 
+                            ? `+${relativeToPar}` 
+                            : relativeToPar === 0 
+                                ? "E" 
+                                : relativeToPar;
+                        
+                        return (
+                            <li
+                                key={team.index}
+                                style={{ fontSize: "14px", marginBottom: "4px" }}
+                            >
+                                <strong>{team.name}</strong> : {getTotalScore(team)} stroke(s) ({relativeDisplay})
+                            </li>
+                        );
+                    })}
                 </ol>
             </div>
 
@@ -447,6 +483,19 @@ export default function FantasyGolfDraft() {
                         <p style={{ margin: 0 }}>
                             Total: <strong>{getTotalScore(team)}</strong> strokes
                         </p>
+                        <p style={{ margin: 0 }}>
+                            {(() => {
+                                const relativeToPar = getScoreRelativeToPar(team);
+                                const relativeDisplay = relativeToPar > 0 
+                                    ? `+${relativeToPar}` 
+                                    : relativeToPar === 0 
+                                        ? "E" 
+                                        : relativeToPar;
+                                return (
+                                    <>Score: <strong>{relativeDisplay}</strong></>
+                                );
+                            })()}
+                        </p>
                     </div>
                     {team.transactions.length > 0 && (
                         <div style={{ marginTop: "14px", fontSize: "10px", color: "#ccc" }}>
@@ -456,7 +505,7 @@ export default function FantasyGolfDraft() {
                                     <li key={i}>
                                         {tx.type === "add" ? "Added" : "Removed"} {tx.amount} stroke
                                         {tx.amount !== 1 ? "s" : ""} {tx.to ? `to ${tx.to}` : ""} - $
-                                        {tx.cost}
+                                        {tx.cost.toFixed(2)}
                                     </li>
                                 ))}
                             </ul>
