@@ -20,7 +20,7 @@ const teamNames = [
     "3 Holes of Contact",
     "Ya Love to see it",
     "Team DadStrength",
-    "Return of the Heir",
+    "John Buck > Joe Buck",
     "Handful of TDs",
     "Cash Money $100 Bills",
     "Risky Glizzness",
