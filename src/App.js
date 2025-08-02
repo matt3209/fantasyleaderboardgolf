@@ -23,7 +23,7 @@ const teamNames = [
     "Return of the Heir",
     "Handful of TDs",
     "Cash Money $100 Bills",
-    "Corndogs",
+    "Risky Glizzness",
     "Nate and Jake 4ever",
 ];
 
